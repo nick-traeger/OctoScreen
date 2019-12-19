@@ -136,10 +136,7 @@ func (ui *UI) verifyConnection() {
 		case s.Current.State.IsError():
 			fallthrough
 		case s.Current.State.IsOffline():
-			if err := (&octoprint.ConnectRequest{}).Do(ui.Printer); err != nil {
-				newUiState = "splash"
-				splashMessage = fmt.Sprintf("Error connecting to printer: %s", err)
-			}
+			splashMessage = string(s.Current.State)
 		case s.Current.State.IsConnecting():
 			splashMessage = string(s.Current.State)
 		}
