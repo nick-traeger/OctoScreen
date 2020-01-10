@@ -26,11 +26,12 @@ const (
 )
 
 type UI struct {
-	Current         Panel
-	Printer         *octoprint.Client
-	State           octoprint.ConnectionState
-	Settings        *octoprint.GetSettingsResponse
-	UIState         string
+	Current  Panel
+	Printer  *octoprint.Client
+	State    octoprint.ConnectionState
+	Settings *octoprint.GetSettingsResponse
+	UIState  string
+
 	OctoPrintPlugin bool
 
 	Notifications *Notifications
@@ -38,12 +39,12 @@ type UI struct {
 	s *SplashPanel
 	b *BackgroundTask
 	g *gtk.Grid
-	o *gtk.Overlay
 	w *gtk.Window
 	t time.Time
 
-	width, height int
-	scaleFactor   int
+	width, height      int
+	scaleFactor        int
+	connectionAttempts int
 
 	sync.Mutex
 }
@@ -95,11 +96,11 @@ func (ui *UI) initialize() {
 		gtk.MainQuit()
 	})
 
-	ui.o = MustOverlay()
-	ui.w.Add(ui.o)
+	o := MustOverlay()
+	ui.w.Add(o)
 
 	ui.g = MustGrid()
-	ui.o.Add(ui.g)
+	o.Add(ui.g)
 
 	ui.sdNotify("READY=1")
 }
@@ -123,7 +124,7 @@ func (ui *UI) verifyConnection() {
 	ui.sdNotify("WATCHDOG=1")
 
 	newUiState := "splash"
-	splashMessage := "Loading..."
+	splashMessage := "Initializing..."
 
 	s, err := (&octoprint.ConnectionRequest{}).Do(ui.Printer)
 	if err == nil {
@@ -190,17 +191,25 @@ func (m *UI) loadSettings() {
 		Logger.Error(err)
 		return
 	}
-
 	m.Settings = n
 }
 
 func (m *UI) update() {
-	m.verifyConnection()
+	if m.connectionAttempts > 8 {
+		m.s.putOnHold()
+		return
+	} else if m.UIState == "splash" {
+		m.connectionAttempts += 1
+	} else {
+		m.connectionAttempts = 0
+	}
 
 	if m.OctoPrintPlugin {
 		m.checkNotification()
 		m.loadSettings()
 	}
+
+	m.verifyConnection()
 }
 
 func (ui *UI) sdNotify(m string) {

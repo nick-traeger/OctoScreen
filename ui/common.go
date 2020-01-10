@@ -90,12 +90,18 @@ func (p *CommonPanel) Scaled(s int) int {
 	return s * p.UI.scaleFactor
 }
 
-func (m *CommonPanel) arrangeButtons(buttons []gtk.IWidget) {
+func (m *CommonPanel) arrangeMenuItems(grid *gtk.Grid, items []octoprint.MenuItem, cols int) {
+	for i, item := range items {
+		panel := getPanel(m.UI, m, item)
 
-	row := 4
+		if panel != nil {
+			color := fmt.Sprintf("color%d", (i%4)+1)
+			icon := fmt.Sprintf("%s.svg", item.Icon)
 
-	for i, k := range buttons {
-		m.Grid().Attach(k, (i%row)+1, i/row, 1, 1)
+			grid.Attach(MustButtonImageStyle(item.Name, icon, color, func() {
+				m.UI.Add(panel)
+			}), (i%cols)+1, i/cols, 1, 1)
+		}
 	}
 }
 
